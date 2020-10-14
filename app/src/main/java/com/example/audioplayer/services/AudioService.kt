@@ -1,8 +1,6 @@
 package com.example.audioplayer.services
 
 import android.app.*
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.media.AudioAttributes
@@ -19,7 +17,7 @@ import androidx.core.app.NotificationCompat
 import com.example.audioplayer.MainActivity
 import com.example.audioplayer.R
 import com.example.audioplayer.application.AudioPlayerApplication
-import java.util.*
+import kotlin.time.ExperimentalTime
 
 
 class AudioService : Service(), Runnable {
@@ -56,7 +54,7 @@ class AudioService : Service(), Runnable {
                     )
                     mediaPlayer.start()
                     startForeground()
-                    handler.postDelayed(this@AudioService, 1000)
+                    handler.postDelayed(this@AudioService, 500)
                 }
 
                 @RequiresApi(Build.VERSION_CODES.N)
@@ -72,20 +70,20 @@ class AudioService : Service(), Runnable {
                     stopForeground(STOP_FOREGROUND_REMOVE)
                 }
 
+                @RequiresApi(Build.VERSION_CODES.O)
                 override fun onRewind() {
-                    super.onRewind()
+                    mediaPlayer.seekTo((mediaPlayer.currentPosition - 15000).toLong(), MediaPlayer.SEEK_PREVIOUS_SYNC)
                 }
 
+                @RequiresApi(Build.VERSION_CODES.O)
                 override fun onFastForward() {
-                    super.onFastForward()
+                    mediaPlayer.seekTo((mediaPlayer.currentPosition + 15000).toLong(), MediaPlayer.SEEK_NEXT_SYNC)
                 }
             })
 
             val activityIntent = Intent(applicationContext, MainActivity::class.java)
             setSessionActivity(PendingIntent.getActivity(applicationContext, 0, activityIntent, 0))
         }
-
-
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -144,11 +142,12 @@ class AudioService : Service(), Runnable {
         mediaSession.release()
     }
 
+    @ExperimentalTime
     override fun run() {
         val intent = Intent(MainActivity.INTENT_ACTION)
-            .putExtra("currentPosition", mediaPlayer.currentPosition)
-            .putExtra("duration", mediaPlayer.duration)
+            .putExtra("currentPosition", mediaPlayer.currentPosition / 1000)
+            .putExtra("duration", mediaPlayer.duration / 1000)
         sendBroadcast(intent)
-        handler.postDelayed(this, 1000)
+        handler.postDelayed(this, 500)
     }
 }

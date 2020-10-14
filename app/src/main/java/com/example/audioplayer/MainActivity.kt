@@ -97,8 +97,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     override fun onClick(view: View?) {
         when(view) {
-            prev_15 -> { viewModel.rewind() }
-            next_15 -> { viewModel.forward() }
+            prev_15 -> { mediaController?.transportControls?.rewind() }
+            next_15 -> { mediaController?.transportControls?.fastForward() }
             play_pause -> {
                 if (mediaController?.playbackState?.state == PlaybackStateCompat.STATE_PLAYING)
                 mediaController?.transportControls?.pause()
