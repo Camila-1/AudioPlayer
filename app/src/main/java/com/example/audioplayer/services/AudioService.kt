@@ -3,9 +3,7 @@ package com.example.audioplayer.services
 import android.app.*
 import android.content.Intent
 import android.graphics.Color
-import android.media.AudioAttributes
 import android.media.MediaPlayer
-import android.net.Uri
 import android.os.Binder
 import android.os.Build
 import android.os.Handler
@@ -17,6 +15,7 @@ import androidx.core.app.NotificationCompat
 import com.example.audioplayer.MainActivity
 import com.example.audioplayer.R
 import com.example.audioplayer.application.AudioPlayerApplication
+import javax.inject.Inject
 import kotlin.time.ExperimentalTime
 
 
@@ -25,21 +24,20 @@ class AudioService : Service(), Runnable {
     inner class AudioServiceBinder : Binder() {
         val instance: AudioService
             get() = this@AudioService
-        val sessionToken: MediaSessionCompat.Token
-        get() = mediaSession.sessionToken
     }
 
     private var notification: Notification? = null
-    private lateinit var mediaPlayer: MediaPlayer
-    private val playbackStateBuilder = PlaybackStateCompat.Builder()
-    private lateinit var mediaSession: MediaSessionCompat
-    private val handler = Handler()
+    @Inject lateinit var mediaPlayer: MediaPlayer
+    @Inject lateinit var mediaSession: MediaSessionCompat
+    @Inject lateinit var handler: Handler
 
     override fun onCreate() {
         AudioPlayerApplication.appComponent.inject(this)
         super.onCreate()
 
-        mediaSession = MediaSessionCompat(this, "AudioService").apply {
+        val playbackStateBuilder = PlaybackStateCompat.Builder()
+
+        mediaSession.apply {
             setCallback(object : MediaSessionCompat.Callback() {
                 @RequiresApi(Build.VERSION_CODES.O)
                 override fun onPlay() {
@@ -87,20 +85,7 @@ class AudioService : Service(), Runnable {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-
-        val uri =
-            "https://www.dropbox.com/s/gbpkwex67ppmj7v/al_green_love_and_happiness_%28NaitiMP3.ru%29.mp3?dl=1"
-
-        mediaPlayer = MediaPlayer().apply {
-            setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .build()
-            )
-            setDataSource(applicationContext, Uri.parse(uri))
-            prepare()
-        }
+        mediaPlayer.prepareAsync()
         return START_NOT_STICKY
     }
 

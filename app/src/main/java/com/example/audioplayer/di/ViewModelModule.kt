@@ -1,5 +1,6 @@
 package com.example.audioplayer.di
 
+import android.support.v4.media.session.MediaControllerCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.audioplayer.AudioPlayerViewModel
@@ -41,7 +42,7 @@ class ViewModelModule {
     @Provides
     @IntoMap
     @ViewModelKey(AudioPlayerViewModel::class)
-    fun provideViewModel(): ViewModel {
-        return AudioPlayerViewModel()
+    fun provideViewModel(mediaController: MediaControllerCompat): ViewModel {
+        return AudioPlayerViewModel(mediaController)
     }
 }

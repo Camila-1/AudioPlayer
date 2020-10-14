@@ -1,37 +1,22 @@
 package com.example.audioplayer
 
-import androidx.lifecycle.MutableLiveData
+import android.support.v4.media.session.MediaControllerCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import androidx.lifecycle.ViewModel
 
-sealed class MediaPlayerAction {
-    object Prepare : MediaPlayerAction()
-    object Play : MediaPlayerAction()
-    object Pause : MediaPlayerAction()
-    class Rewind(val seconds: Int) : MediaPlayerAction()
-    class Forward(val seconds: Int) : MediaPlayerAction()
-}
+class AudioPlayerViewModel(private val mediaController: MediaControllerCompat) : ViewModel() {
 
-class AudioPlayerViewModel : ViewModel() {
-
-    private var isPlaying = false
-
-    val mediaPlayerAction: MutableLiveData<MediaPlayerAction> = MutableLiveData(MediaPlayerAction.Prepare)
+    fun registerMediaControllerCallback(callback: MediaControllerCompat.Callback) {
+        mediaController.registerCallback(callback)
+    }
 
     fun playOrPause() {
-        if (isPlaying) {
-            mediaPlayerAction.value = MediaPlayerAction.Pause
-            isPlaying = false
-        } else {
-            mediaPlayerAction.value = MediaPlayerAction.Play
-            isPlaying = true
-        }
+        if (mediaController.playbackState?.state == PlaybackStateCompat.STATE_PLAYING)
+            mediaController.transportControls?.pause()
+        else mediaController.transportControls?.play()
     }
 
-    fun rewind() {
-        mediaPlayerAction.value = MediaPlayerAction.Rewind(15)
-    }
+    fun rewind() = mediaController.transportControls?.rewind()
 
-    fun forward() {
-        mediaPlayerAction.value = MediaPlayerAction.Forward(15)
-    }
+    fun forward() = mediaController.transportControls?.fastForward()
 }

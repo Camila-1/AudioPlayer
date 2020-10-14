@@ -23,39 +23,35 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     @Inject
     lateinit var viewModelFactory: ViewModelFactory
 
-    private var audioService: AudioService? = null
-    private var mediaController: MediaControllerCompat? = null
     private var audioServiceBinder: AudioService.AudioServiceBinder? = null
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (!intent?.action.equals(INTENT_ACTION)) return
             intent?.extras?.getInt("currentPosition")?.let {
-                current_time.text = TimeUnit.MILLISECONDS.toMinutes(it.toLong()).toString()
+                current_time.text = TimeUnit.MILLISECONDS.toSeconds(it.toLong()).toString()
                 seek_bar.progress = it
             }
             intent?.extras?.getInt("duration")?.let {
-                duration.text = TimeUnit.MILLISECONDS.toMinutes(it.toLong()).toString()
+                duration.text = TimeUnit.MILLISECONDS.toSeconds(it.toLong()).toString()
                 seek_bar.max = it
             }
         }
     }
 
     private var serviceConnection: ServiceConnection = object : ServiceConnection {
-
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             audioServiceBinder = service as AudioService.AudioServiceBinder
 
-            mediaController = MediaControllerCompat(
-                this@MainActivity, audioServiceBinder!!.sessionToken
-            )
-            mediaController!!.registerCallback(object : MediaControllerCompat.Callback() {
+            val mediaControllerCallback = object : MediaControllerCompat.Callback() {
                 override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
                     if (state?.state == PlaybackStateCompat.STATE_PLAYING)
                         play_pause.setImageResource(R.drawable.ic_baseline_pause_circle_filled_24)
                     else play_pause.setImageResource(R.drawable.ic_baseline_play_circle_filled_24)
                 }
-            })
+            }
+
+            viewModel.registerMediaControllerCallback(mediaControllerCallback)
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -97,14 +93,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     override fun onClick(view: View?) {
         when(view) {
-            prev_15 -> { mediaController?.transportControls?.rewind() }
-            next_15 -> { mediaController?.transportControls?.fastForward() }
-            play_pause -> {
-                if (mediaController?.playbackState?.state == PlaybackStateCompat.STATE_PLAYING)
-                mediaController?.transportControls?.pause()
-                else mediaController?.transportControls?.play()
-            }
-            else -> {  }
+            prev_15 -> { viewModel.rewind() }
+            next_15 -> { viewModel.forward() }
+            play_pause -> { viewModel.playOrPause() }
         }
     }
 
