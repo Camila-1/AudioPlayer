@@ -1,18 +1,21 @@
 package com.example.audioplayer
 
+import android.annotation.SuppressLint
 import android.content.*
 import android.os.Bundle
 import android.os.IBinder
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.view.MotionEvent
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.example.audioplayer.application.AudioPlayerApplication
 import com.example.audioplayer.extensions.injectViewModel
 import com.example.audioplayer.services.AudioService
+import com.example.audioplayer.utils.Utils
 import kotlinx.android.synthetic.main.activity_main.*
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
 
@@ -29,12 +32,17 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (!intent?.action.equals(INTENT_ACTION)) return
             intent?.extras?.getInt("currentPosition")?.let {
-                current_time.text = TimeUnit.MILLISECONDS.toSeconds(it.toLong()).toString()
+                current_time.text = Utils.secondsToMS(it.toLong())
                 seek_bar.progress = it
             }
             intent?.extras?.getInt("duration")?.let {
-                duration.text = TimeUnit.MILLISECONDS.toSeconds(it.toLong()).toString()
+                duration.text = Utils.secondsToMS(it.toLong())
                 seek_bar.max = it
+            }
+            intent?.extras?.getBoolean("isCompleted").let {
+                if (it == false) return
+                seek_bar.progress = 0
+                play_pause.setImageResource(R.drawable.ic_baseline_play_circle_filled_24)
             }
         }
     }
@@ -45,12 +53,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
             val mediaControllerCallback = object : MediaControllerCompat.Callback() {
                 override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
-                    if (state?.state == PlaybackStateCompat.STATE_PLAYING)
-                        play_pause.setImageResource(R.drawable.ic_baseline_pause_circle_filled_24)
-                    else play_pause.setImageResource(R.drawable.ic_baseline_play_circle_filled_24)
+                    val resId = viewModel.playPauseImageResourceByPlaybackState(state)
+                    setPlayPauseButtonImageResource(resId)
                 }
             }
-
             viewModel.registerMediaControllerCallback(mediaControllerCallback)
         }
 
@@ -62,6 +68,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     lateinit var viewModel: AudioPlayerViewModel
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         AudioPlayerApplication.appComponent.inject(this)
 
@@ -73,8 +80,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         play_pause.setOnClickListener(this)
         prev_15.setOnClickListener(this)
         next_15.setOnClickListener(this)
-
-
+        seek_bar.setOnTouchListener { _, _ -> true }
     }
 
     override fun onResume() {
@@ -85,6 +91,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             startService(intent)
             bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
         }
+
+        val resId = viewModel.playPauseImageResourceByPlaybackState(viewModel.playbackState)
+        setPlayPauseButtonImageResource(resId)
     }
 
     override fun onPause() {
@@ -94,9 +103,15 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     override fun onClick(view: View?) {
         when(view) {
-            prev_15 -> { viewModel.rewind() }
-            next_15 -> { viewModel.forward() }
-            play_pause -> { viewModel.playOrPause() }
+            prev_15 -> {
+                viewModel.rewind()
+            }
+            next_15 -> {
+                viewModel.forward()
+            }
+            play_pause -> {
+                viewModel.playOrPause()
+            }
         }
     }
 
@@ -104,4 +119,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         super.onDestroy()
         unbindService(serviceConnection)
     }
+
+    private fun setPlayPauseButtonImageResource(resId: Int) = play_pause.setImageResource(resId)
 }
