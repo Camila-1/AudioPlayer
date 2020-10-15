@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Handler
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
+import com.example.audioplayer.services.notifications.PlayerNotification
 import dagger.Module
 import dagger.Provides
 import javax.inject.Singleton
@@ -37,6 +38,11 @@ class ServiceModule {
             )
             setDataSource(context, Uri.parse(uri))
         }
+    }
+
+    @Provides
+    fun providePlayerNotification(context: Context): PlayerNotification {
+        return PlayerNotification(context)
     }
 
     @Singleton

@@ -74,16 +74,17 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         prev_15.setOnClickListener(this)
         next_15.setOnClickListener(this)
 
-        Intent(this, AudioService::class.java).also { intent ->
-            startService(intent)
-            bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
-        }
+
     }
 
     override fun onResume() {
         super.onResume()
         val intentFilter = IntentFilter().apply { addAction(INTENT_ACTION) }
         registerReceiver(receiver, intentFilter)
+        Intent(this, AudioService::class.java).also { intent ->
+            startService(intent)
+            bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        }
     }
 
     override fun onPause() {

@@ -4,7 +4,6 @@ import android.support.v4.media.session.MediaControllerCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.audioplayer.AudioPlayerViewModel
-import com.example.audioplayer.Player
 import dagger.MapKey
 import dagger.Module
 import dagger.Provides
