@@ -13,81 +13,92 @@ import com.example.audioplayer.MainActivity
 import com.example.audioplayer.application.AudioPlayerApplication
 import com.example.audioplayer.services.notifications.PlayerNotification
 import javax.inject.Inject
-import kotlin.time.minutes
 
 
 class AudioService : Service(), Runnable, MediaPlayer.OnCompletionListener {
 
-    @Inject lateinit var mediaPlayer: MediaPlayer
-    @Inject lateinit var mediaSession: MediaSessionCompat
-    @Inject lateinit var handler: Handler
-    @Inject lateinit var playerNotification: PlayerNotification
+    @Inject
+    lateinit var mediaPlayer: MediaPlayer
+    @Inject
+    lateinit var mediaSession: MediaSessionCompat
+    @Inject
+    lateinit var handler: Handler
+    @Inject
+    lateinit var playerNotification: PlayerNotification
 
     inner class AudioServiceBinder : Binder() {
         val instance: AudioService
             get() = this@AudioService
     }
 
+    val mediaSessionCallback = object : MediaSessionCompat.Callback() {
+        override fun onPlay() {
+            mediaSession.isActive = true
+            mediaSession.setPlaybackState(
+                PlaybackStateCompat.Builder()
+                    .setState(
+                        PlaybackStateCompat.STATE_PLAYING,
+                        PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                        1F
+                    ).build()
+            )
+            mediaPlayer.start()
+            startForeground()
+            handler.postDelayed(this@AudioService, 500)
+        }
+
+        override fun onPause() {
+            mediaPlayer.pause()
+            mediaSession.setPlaybackState(
+                PlaybackStateCompat.Builder().setState(
+                    PlaybackStateCompat.STATE_PAUSED,
+                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                    1F
+                ).build()
+            )
+            stopForeground(true)
+        }
+
+        override fun onRewind() {
+            mediaPlayer.seekTo(mediaPlayer.currentPosition - 15000L, MediaPlayer.SEEK_PREVIOUS_SYNC)
+        }
+
+        override fun onFastForward() {
+            mediaPlayer.seekTo(mediaPlayer.currentPosition + 15000L, MediaPlayer.SEEK_NEXT_SYNC)
+        }
+
+        override fun onSeekTo(position: Long) {
+            mediaPlayer.seekTo(position.toInt())
+        }
+    }
+
     override fun onCreate() {
         AudioPlayerApplication.appComponent.inject(this)
         super.onCreate()
 
-        mediaPlayer.setOnCompletionListener(this)
-        mediaPlayer.prepare()
-
-        mediaSession.apply {
-            setCallback(object : MediaSessionCompat.Callback() {
-                override fun onPlay() {
-                    isActive = true
-                    setPlaybackState(
-                        PlaybackStateCompat.Builder()
-                            .setState(
-                                PlaybackStateCompat.STATE_PLAYING,
-                                PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                                1F
-                            ).build()
+        mediaPlayer.apply {
+            setOnCompletionListener(this@AudioService)
+            prepareAsync()
+            setOnPreparedListener {
+                mediaSession.apply {
+                    setCallback(mediaSessionCallback)
+                    val activityIntent = Intent(applicationContext, MainActivity::class.java)
+                    setSessionActivity(
+                        PendingIntent.getActivity(
+                            applicationContext,
+                            0,
+                            activityIntent,
+                            0
+                        )
                     )
-                    mediaPlayer.start()
-                    startForeground()
-                    handler.postDelayed(this@AudioService, 500)
                 }
-
-                override fun onPause() {
-                    mediaPlayer.pause()
-                    setPlaybackState(
-                        PlaybackStateCompat.Builder().setState(
-                            PlaybackStateCompat.STATE_PAUSED,
-                            PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                            1F
-                        ).build()
-                    )
-                    stopForeground(true)
-                }
-
-                override fun onRewind() {
-                    mediaPlayer.seekTo(mediaPlayer.currentPosition - 15000L, MediaPlayer.SEEK_PREVIOUS_SYNC)
-                }
-
-                override fun onFastForward() {
-                    mediaPlayer.seekTo(mediaPlayer.currentPosition + 15000L, MediaPlayer.SEEK_NEXT_SYNC)
-                }
-
-                override fun onSeekTo(position: Long) {
-                    mediaPlayer.seekTo(position.toInt())
-                }
-            })
-            val activityIntent = Intent(applicationContext, MainActivity::class.java)
-            setSessionActivity(PendingIntent.getActivity(applicationContext, 0, activityIntent, 0))
+            }
         }
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        return START_STICKY
-    }
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
-    private fun startForeground() {
-        startForeground(1, playerNotification.buildNotification())
-    }
+    private fun startForeground() = startForeground(1, playerNotification.buildNotification())
 
     override fun onBind(intent: Intent?): IBinder? = AudioServiceBinder()
 

@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.os.IBinder
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
-import android.view.MotionEvent
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.example.audioplayer.application.AudioPlayerApplication
@@ -26,6 +25,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     @Inject
     lateinit var viewModelFactory: ViewModelFactory
 
+    lateinit var viewModel: AudioPlayerViewModel
+
     private var audioServiceBinder: AudioService.AudioServiceBinder? = null
 
     private val receiver = object : BroadcastReceiver() {
@@ -42,6 +43,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             intent?.extras?.getBoolean("isCompleted").let {
                 if (it == false) return
                 seek_bar.progress = 0
+                viewModel.playbackState = PlaybackStateCompat.STATE_PAUSED
                 play_pause.setImageResource(R.drawable.ic_baseline_play_circle_filled_24)
             }
         }
@@ -53,8 +55,11 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
             val mediaControllerCallback = object : MediaControllerCompat.Callback() {
                 override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
-                    val resId = viewModel.playPauseImageResourceByPlaybackState(state)
-                    setPlayPauseButtonImageResource(resId)
+                    state?.let {
+                        viewModel.playbackState = it.state
+                        val resId = viewModel.currentPlayPauseImageResource()
+                        setPlayPauseButtonImageResource(resId)
+                    }
                 }
             }
             viewModel.registerMediaControllerCallback(mediaControllerCallback)
@@ -65,8 +70,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             mediaController = null
         }
     }
-
-    lateinit var viewModel: AudioPlayerViewModel
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -92,7 +95,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
         }
 
-        val resId = viewModel.playPauseImageResourceByPlaybackState(viewModel.playbackState)
+        val resId = viewModel.currentPlayPauseImageResource()
         setPlayPauseButtonImageResource(resId)
     }
 

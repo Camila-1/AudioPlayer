@@ -6,14 +6,14 @@ import androidx.lifecycle.ViewModel
 
 class AudioPlayerViewModel(private val mediaController: MediaControllerCompat) : ViewModel() {
 
-    var playbackState: PlaybackStateCompat? = null
+    var playbackState: Int = 0
 
     fun registerMediaControllerCallback(callback: MediaControllerCompat.Callback) {
         mediaController.registerCallback(callback)
     }
 
     fun playOrPause() {
-        if (mediaController.playbackState?.state == PlaybackStateCompat.STATE_PLAYING)
+        if (playbackState == PlaybackStateCompat.STATE_PLAYING)
             mediaController.transportControls?.pause()
         else mediaController.transportControls?.play()
     }
@@ -22,14 +22,9 @@ class AudioPlayerViewModel(private val mediaController: MediaControllerCompat) :
 
     fun forward() = mediaController.transportControls?.fastForward()
 
-    fun playPauseImageResourceByPlaybackState(state: PlaybackStateCompat?): Int {
-        playbackState = state
-        return if (state?.state == PlaybackStateCompat.STATE_PLAYING)
+    fun currentPlayPauseImageResource(): Int {
+        return if (playbackState == PlaybackStateCompat.STATE_PLAYING)
             R.drawable.ic_baseline_pause_circle_filled_24
         else R.drawable.ic_baseline_play_circle_filled_24
-    }
-
-    fun seekTo(seconds: Int) {
-        mediaController.transportControls.seekTo(seconds.toLong() * 1000)
     }
 }
