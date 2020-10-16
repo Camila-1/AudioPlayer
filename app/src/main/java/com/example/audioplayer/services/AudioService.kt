@@ -1,6 +1,5 @@
 package com.example.audioplayer.services
 
-import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.media.MediaPlayer
@@ -11,27 +10,25 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import com.example.audioplayer.MainActivity
 import com.example.audioplayer.application.AudioPlayerApplication
+import com.example.audioplayer.network.InternetChecker
 import com.example.audioplayer.services.notifications.PlayerNotification
 import javax.inject.Inject
 
 
 class AudioService : Service(), Runnable, MediaPlayer.OnCompletionListener {
 
-    @Inject
-    lateinit var mediaPlayer: MediaPlayer
-    @Inject
-    lateinit var mediaSession: MediaSessionCompat
-    @Inject
-    lateinit var handler: Handler
-    @Inject
-    lateinit var playerNotification: PlayerNotification
+    @Inject lateinit var mediaPlayer: MediaPlayer
+    @Inject lateinit var mediaSession: MediaSessionCompat
+    @Inject lateinit var handler: Handler
+    @Inject lateinit var playerNotification: PlayerNotification
+    @Inject lateinit var internetChecker: InternetChecker
 
     inner class AudioServiceBinder : Binder() {
         val instance: AudioService
             get() = this@AudioService
     }
 
-    val mediaSessionCallback = object : MediaSessionCompat.Callback() {
+    private val mediaSessionCallback = object : MediaSessionCompat.Callback() {
         override fun onPlay() {
             mediaSession.isActive = true
             mediaSession.setPlaybackState(
@@ -76,23 +73,15 @@ class AudioService : Service(), Runnable, MediaPlayer.OnCompletionListener {
         AudioPlayerApplication.appComponent.inject(this)
         super.onCreate()
 
-        mediaPlayer.apply {
-            setOnCompletionListener(this@AudioService)
-            prepareAsync()
-            setOnPreparedListener {
-                mediaSession.apply {
-                    setCallback(mediaSessionCallback)
-                    val activityIntent = Intent(applicationContext, MainActivity::class.java)
-                    setSessionActivity(
-                        PendingIntent.getActivity(
-                            applicationContext,
-                            0,
-                            activityIntent,
-                            0
-                        )
-                    )
-                }
+        if (internetChecker.isConnected()) {
+            mediaPlayer.apply {
+                setOnCompletionListener(this@AudioService)
+                prepareAsync()
+                setOnPreparedListener { mediaSession.apply { setCallback(mediaSessionCallback) } }
             }
+        } else {
+            val intent = Intent(MainActivity.INTENT_ACTION).putExtra("isNotConnected", true)
+            sendBroadcast(intent)
         }
     }
 

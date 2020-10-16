@@ -7,12 +7,17 @@ import android.os.IBinder
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.audioplayer.application.AudioPlayerApplication
 import com.example.audioplayer.extensions.injectViewModel
+import com.example.audioplayer.network.InternetChecker
 import com.example.audioplayer.services.AudioService
 import com.example.audioplayer.utils.Utils
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 
@@ -41,10 +46,15 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 seek_bar.max = it
             }
             intent?.extras?.getBoolean("isCompleted").let {
-                if (it == false) return
-                seek_bar.progress = 0
-                viewModel.playbackState = PlaybackStateCompat.STATE_PAUSED
-                play_pause.setImageResource(R.drawable.ic_baseline_play_circle_filled_24)
+                if (it == true) {
+                    seek_bar.progress = 0
+                    viewModel.playbackState = PlaybackStateCompat.STATE_PAUSED
+                    play_pause.setImageResource(R.drawable.ic_baseline_play_circle_filled_24)
+                }
+            }
+            intent?.extras?.getBoolean("isNotConnected").let {
+                if (it == true)
+                    Toast.makeText(this@MainActivity, "No connection", Toast.LENGTH_LONG).show()
             }
         }
     }

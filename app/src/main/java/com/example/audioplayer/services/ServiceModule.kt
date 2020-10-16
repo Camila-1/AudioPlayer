@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Handler
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
+import com.example.audioplayer.network.InternetChecker
 import com.example.audioplayer.services.notifications.PlayerNotification
 import dagger.Module
 import dagger.Provides
@@ -49,5 +50,10 @@ class ServiceModule {
     @Provides
     fun provideMediaSession(context: Context): MediaSessionCompat {
         return MediaSessionCompat(context, "AudioPlayer")
+    }
+
+    @Provides
+    fun provideInternetChecker(context: Context): InternetChecker {
+        return InternetChecker(context)
     }
 }
